@@ -82,6 +82,12 @@ $totalMaintenance = 3;
             <p>Add, edit, and view maintenance records.</p>
         </a>
 
+        <a href="models_locations.php" class="management-card">
+            <h3>Models & Locations</h3>
+            <p>Manage vehicle models and rental locations.</p>
+        </a>
+
+
     </section>
 </main>
 
