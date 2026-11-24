@@ -58,16 +58,6 @@ $totalMaintenance = 3;
             <p>Add, edit, and remove vehicles.</p>
         </a>
 
-        <a href="reservations.php" class="management-card">
-            <h3>Reservations</h3>
-            <p>View and manage reservations.</p>
-        </a>
-
-        <a href="payments.php" class="management-card">
-            <h3>Payments</h3>
-            <p>View and update payment status.</p>
-        </a>
-
         <a href="reports.php" class="management-card">
             <h3>Reports</h3>
             <p>View revenue and rental analytics.</p>
@@ -86,6 +76,12 @@ $totalMaintenance = 3;
             <h3>Models & Locations</h3>
             <p>Manage vehicle models and rental locations.</p>
         </a>
+
+        <a href="reservations_payments.php" class="management-card">
+            <h3>Reservations & Payments</h3>
+            <p>View reservations, payments, and update statuses.</p>
+        </a>
+
 
 
     </section>
