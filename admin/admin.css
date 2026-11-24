@@ -1,0 +1,141 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    color: #243047;
+}
+
+.header {
+    background: #172b4d;
+    color: white;
+    padding: 20px 8%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    margin: 0;
+}
+
+.admin-label {
+    background: #304b73;
+    padding: 9px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.subtitle {
+    color: #68758a;
+    margin-bottom: 30px;
+}
+
+.stats,
+.management {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.stat-card,
+.management-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card h3 {
+    color: #68758a;
+    font-size: 16px;
+}
+
+.stat-card p {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
+.management-card {
+    text-decoration: none;
+    color: #243047;
+    border: 1px solid #e5eaf1;
+}
+
+.management-card:hover {
+    border-color: #3978d6;
+    transform: translateY(-2px);
+}
+
+.management-card p {
+    color: #68758a;
+}
+
+@media (max-width: 650px) {
+    .stats,
+    .management {
+        grid-template-columns: 1fr;
+    }
+
+    .header {
+        padding: 20px;
+    }
+}
+
+/* Admin forms */
+
+input,
+select {
+    width: 100%;
+    max-width: 450px;
+    padding: 10px;
+    margin-top: 6px;
+    border: 1px solid #d5dce7;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+button {
+    background: #3978d6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #285fae;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    background: #f5f7fb;
+}
+
+td, th {
+    border-bottom: 1px solid #e5eaf1;
+}
+
+@media (max-width: 650px) {
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+}
