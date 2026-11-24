@@ -72,6 +72,10 @@ $totalMaintenance = 3;
             <h3>Reports</h3>
             <p>View revenue and rental analytics.</p>
         </a>
+        <a href="discounts.php" class="management-card">
+            <h3>Discount Management</h3>
+            <p>Add, edit, and remove discount codes.</p>
+        </a>
     </section>
 </main>
 
