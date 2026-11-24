@@ -76,6 +76,12 @@ $totalMaintenance = 3;
             <h3>Discount Management</h3>
             <p>Add, edit, and remove discount codes.</p>
         </a>
+
+        <a href="maintenance.php" class="management-card">
+            <h3>Maintenance Management</h3>
+            <p>Add, edit, and view maintenance records.</p>
+        </a>
+
     </section>
 </main>
 
