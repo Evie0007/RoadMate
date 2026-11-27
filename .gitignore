@@ -1,0 +1,11 @@
+# Each person's own database password: never commit this
+config/config.php
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
