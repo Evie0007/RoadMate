@@ -1,108 +1,192 @@
-# RoadMate: Car Rental Management System
+# RoadMate 🚗
 
-CS 157A Final Project (PHP + MySQL)
+A car rental website for our CS 157A final project, built with PHP and MySQL.
 
-Team: Evie Ho, Mari Yamaguchi, Keyi Tan, Angel Cruz, Quang Lam Trinh
+**Team:** Evie Ho, Mari Yamaguchi, Keyi Tan, Angel Cruz, Quang Lam Trinh
 
-## Folder structure
+---
+
+## Part 1: One-time setup (everyone does this once)
+
+You need 3 things installed: **MySQL + MySQL Workbench**, **PHP**, and **Git**.
+Check PHP and Git by typing these in Terminal (Mac) or Command Prompt (Windows):
 
 ```
-RoadMate/
-├── admin/                   admin dashboard pages
-├── catalog/                 vehicle search and details pages
-├── config/
-│   ├── config.example.php   template for your database login (committed)
-│   └── config.php           YOUR copy with your password (NOT committed)
-├── database/
-│   ├── roadmate_schema.sql  creates the database, tables, triggers, view
-│   └── roadmate_seed.sql    sample data for every table
-├── docs/                    ER diagram (draw.io file + PNG)
-├── includes/
-│   └── db.php               shared MySQL connection, used by every page
-└── db_test.php              connection test page
+php -v
+git --version
 ```
 
-## First-time setup
+If either one says "command not found", see [Troubleshooting](#troubleshooting).
 
-### 1. Get the code
-Clone this repo with GitHub Desktop (File > Clone repository) or:
+### Step 1: Download the project
+
 ```
+cd Documents
 git clone https://github.com/Evie0007/RoadMate.git
+cd RoadMate
 ```
 
-### 2. Create the database (MySQL Workbench)
-1. Open your local MySQL connection.
-2. File > Open SQL Script > `database/roadmate_schema.sql` > click the plain lightning bolt.
-3. File > Open SQL Script > `database/roadmate_seed.sql` > click the plain lightning bolt.
-4. Refresh the Schemas panel. You should see `roadmate` with 12 tables.
+✅ You should now have a `RoadMate` folder in your Documents.
 
-To reset to the starting data at any time, run both scripts again in the same order.
+### Step 2: Create the database
 
-### 3. Add your database password
-1. Copy `config/config.example.php` and name the copy `config/config.php`.
-2. In `config.php`, replace `YOUR_MYSQL_PASSWORD` with the password you use in MySQL Workbench.
+1. Open **MySQL Workbench** and click your local connection.
+2. Click **File → Open SQL Script** and choose `database/roadmate_schema.sql`.
+3. Click the **⚡ lightning bolt** button (the plain one, not the one with a cursor on it).
+4. Do the same thing for `database/roadmate_seed.sql`.
 
-`config.php` is in `.gitignore`, so it stays on your computer only.
+**Order matters:** run `roadmate_schema.sql` first, then `roadmate_seed.sql`.
 
-### 4. Run the site
-From the RoadMate folder, start PHP's built-in server:
+✅ Click the refresh icon in the **Schemas** panel on the left. You should see a database called `roadmate`.
+
+### Step 3: Add your MySQL password
+
+The website needs your MySQL password to connect, but your password should **never** go on GitHub. So everyone makes their own private copy of the settings file.
+
+Make the copy:
+
+```
+# Mac
+cp config/config.example.php config/config.php
+
+# Windows
+copy config\config.example.php config\config.php
+```
+
+Then open `config/config.php` and change this one line to the password you use in MySQL Workbench:
+
+```php
+'password' => 'YOUR_MYSQL_PASSWORD',
+```
+
+✅ Save the file. GitHub will automatically ignore `config.php`, so your password stays on your computer.
+
+### Step 4: Start the website
+
+Inside the `RoadMate` folder, run:
+
 ```
 php -S localhost:8000
 ```
-Then open:
-- http://localhost:8000/db_test.php: should say "Connected to the roadmate database" and show row counts
-- http://localhost:8000/admin/dashboard.php
-- http://localhost:8000/catalog/search.php
 
-Don't have PHP? On Mac: `brew install php`. On Windows: install XAMPP and use only its PHP (don't start XAMPP's MySQL, since you already run MySQL).
+Leave this window open while you work. To stop the website, press **Control + C**.
 
-## Using the database in your page
+Now open your browser and go to: **http://localhost:8000/db_test.php**
 
-Pages inside `admin/` or `catalog/` connect like this:
+✅ You should see a green box saying **"Connected to the roadmate database."** 🎉 You're done with setup!
+
+Other pages:
+- Admin dashboard: http://localhost:8000/admin/dashboard.php
+- Vehicle search: http://localhost:8000/catalog/search.php
+
+---
+
+## Part 2: Every time you work on the project
+
+```
+# 1. Get everyone's latest work
+git checkout main
+git pull
+
+# 2. Make your own branch (only the first time for each feature)
+git checkout -b feature/your-feature-name
+
+# 3. Save your work
+git add .
+git commit -m "Short description of what you changed"
+
+# 4. Upload your branch
+git push -u origin feature/your-feature-name
+```
+
+Then go to the repo on GitHub and click **Compare & pull request**. Evie will review it and merge it into `main`.
+
+**3 rules:**
+1. ❌ Never upload `config/config.php` (it has your password).
+2. ❌ Never push straight to `main`. Always use your own branch and a pull request.
+3. ❌ Don't change the database files without asking the group first. If the database changes, everyone has to redo Step 2.
+
+---
+
+## Part 3: Using the database in your page
+
+Put this line at the top of any page inside `admin/` or `catalog/`:
 
 ```php
-<?php
-require_once __DIR__ . '/../includes/db.php';   // gives you $conn
+require_once __DIR__ . '/../includes/db.php';
+```
 
-// Always use prepared statements when a value comes from the user (prevents SQL injection)
-$stmt = $conn->prepare('SELECT * FROM Vehicle WHERE LocationID = ? AND Status = ?');
-$stmt->bind_param('is', $locationId, $status);   // i = integer, s = string
+Now you have `$conn`, the connection to the database. Use it instead of the fake demo arrays.
+
+**Example: get all available SUVs**
+
+```php
+$stmt = $conn->prepare('SELECT * FROM Vehicle WHERE Status = ?');
+$status = 'Available';
+$stmt->bind_param('s', $status);          // 's' = string, 'i' = number
 $stmt->execute();
 $vehicles = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 ```
 
-This replaces the temporary `$_SESSION['demo_...']` arrays and hard-coded arrays in the prototype pages.
+Always use `prepare` + `bind_param` like this when a value comes from a form. It stops hackers from breaking the database (this is called SQL injection).
 
-Database errors, including trigger messages such as "This vehicle is already reserved for an overlapping rental period.", come back as a `mysqli_sql_exception`:
+**Showing database errors to the user**
+
+Some database rules (like "this car is already booked for those dates") come back as errors. Catch them like this:
 
 ```php
 try {
     $stmt->execute();
 } catch (mysqli_sql_exception $e) {
-    $error = $e->getMessage();   // show this to the user
+    $error = $e->getMessage();   // e.g. "This vehicle is already reserved for an overlapping rental period."
 }
 ```
 
-The table and column names are in `database/roadmate_schema.sql` and the ER diagram in `docs/`.
+The full list of tables and columns is in `database/roadmate_schema.sql`, and the ER diagram is in `docs/`.
 
-## Demo logins (from the seed data)
+---
 
-| Role | Email | Password |
+## Test accounts
+
+These accounts are already in the database from Step 2.
+
+| Who | Email | Password |
 |---|---|---|
-| Customer | jordan.miller@example.com | RoadMate123! |
-| Admin | maria.lopez@roadmate.com | Admin123! |
+| Customer | jordan.miller@example.com | `RoadMate123!` |
+| Admin | maria.lopez@roadmate.com | `Admin123!` |
 
-All customers use `RoadMate123!` and all admins use `Admin123!`. Check passwords with PHP's `password_verify()`.
+Every customer account uses `RoadMate123!` and every admin account uses `Admin123!`.
+To check a password in PHP, use `password_verify()`.
 
-## Team workflow
+Want to start over with fresh sample data? Just redo Step 2.
 
-1. Before starting work, switch to `main` and get the latest code (GitHub Desktop: Fetch origin, then Pull).
-2. Create a branch from `main` for your feature, e.g. `feature/reservations`.
-3. Commit small, clear changes ("Add availability search query").
-4. Push your branch and open a Pull Request into `main`.
-5. The Database & Integration Lead reviews and merges it.
+---
 
-Rules:
-- Never commit `config/config.php`.
-- Don't change the database scripts on your own. Ask in the group chat first. If the schema changes, everyone must re-run both scripts.
-- Never push straight to `main`.
+## Troubleshooting
+
+| You see this | What to do |
+|---|---|
+| `Missing config/config.php` | You skipped Step 3. Make the copy of the config file. |
+| `Access denied for user 'root'` | The password in `config/config.php` is wrong. Use the same one as in MySQL Workbench. |
+| `Unknown database 'roadmate'` | You skipped Step 2, or ran only one of the two files. |
+| `Can't connect to MySQL server` | MySQL isn't running. Mac: **System Settings → MySQL → Start**. Windows: open **Services** and start **MySQL80**. |
+| `php: command not found` | Install PHP. Mac: `brew install php` (get Homebrew from https://brew.sh). Windows: install XAMPP and only use its PHP. |
+| `git: command not found` | Mac: run `xcode-select --install`. Windows: install Git from https://git-scm.com. |
+| `Address already in use` | The website is already running in another window. Use that one, or run `php -S localhost:8001` instead. |
+| Red ❌ in Workbench when running a SQL file | Make sure you used the plain ⚡ button and ran `roadmate_schema.sql` before `roadmate_seed.sql`. |
+
+Still stuck? Send a screenshot of the error in the group chat.
+
+---
+
+## What's in each folder
+
+| Folder / file | What it's for | Who owns it |
+|---|---|---|
+| `admin/` | Admin dashboard pages | Mari |
+| `catalog/` | Vehicle search and details pages | Keyi |
+| `config/` | Database settings (your password goes in `config.php`) | Everyone |
+| `database/` | SQL files that build the database and add sample data | Evie |
+| `docs/` | ER diagram | Evie |
+| `includes/db.php` | Connects every page to the database | Evie |
+| `db_test.php` | Checks that your setup works | Evie |
