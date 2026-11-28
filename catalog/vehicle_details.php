@@ -1,45 +1,47 @@
 <?php
-$vehicles = [
-    1 => [
-        'make' => 'Toyota',
-        'model' => 'Corolla',
-        'year' => 2023,
-        'type' => 'Sedan',
-        'fuel' => 'Gasoline',
-        'seats' => 5,
-        'color' => 'White',
-        'mileage' => 12000,
-        'price' => 55,
-        'location' => 'San Jose'
-    ],
-    2 => [
-        'make' => 'Honda',
-        'model' => 'CR-V',
-        'year' => 2022,
-        'type' => 'SUV',
-        'fuel' => 'Gasoline',
-        'seats' => 5,
-        'color' => 'Blue',
-        'mileage' => 18000,
-        'price' => 75,
-        'location' => 'San Francisco'
-    ],
-    3 => [
-        'make' => 'Tesla',
-        'model' => 'Model 3',
-        'year' => 2024,
-        'type' => 'Electric',
-        'fuel' => 'Electric',
-        'seats' => 5,
-        'color' => 'Black',
-        'mileage' => 7000,
-        'price' => 90,
-        'location' => 'San Jose'
-    ]
-];
+require_once __DIR__ . '/../includes/db.php';
 
-$vehicleId = $_GET['id'] ?? 0;
-$vehicle = $vehicles[$vehicleId] ?? null;
+function h($value)
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+$vehicleId = filter_input(
+    INPUT_GET,
+    'id',
+    FILTER_VALIDATE_INT
+);
+
+$vehicle = null;
+
+if ($vehicleId !== false && $vehicleId !== null && $vehicleId > 0) {
+    $sql = "
+        SELECT
+            v.VehicleID,
+            v.Color AS color,
+            v.Mileage AS mileage,
+            v.DailyRate AS price,
+            vm.Make AS make,
+            vm.ModelName AS model,
+            vm.Year AS year,
+            vm.FuelType AS fuel,
+            vm.Seats AS seats,
+            vt.TypeName AS type,
+            rl.Name AS location
+        FROM Vehicle v
+        JOIN VehicleModel vm
+            ON v.ModelID = vm.ModelID
+        JOIN VehicleType vt
+            ON vm.TypeID = vt.TypeID
+        JOIN RentalLocation rl
+            ON v.LocationID = rl.LocationID
+        WHERE v.VehicleID = ?
+    ";
+
+    $result = $conn->execute_query($sql, [$vehicleId]);
+
+    $vehicle = $result->fetch_assoc();
+}
 ?>
 
 <!DOCTYPE html>

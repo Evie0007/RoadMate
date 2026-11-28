@@ -1,48 +1,32 @@
 <?php
-$vehicles = [
-    1 => [
-        'make' => 'Toyota',
-        'model' => 'Corolla',
-        'year' => 2023,
-        'type' => 'Sedan',
-        'fuel' => 'Gasoline',
-        'seats' => 5,
-        'price' => 55,
-        'location' => 'San Jose'
-    ],
-    2 => [
-        'make' => 'Honda',
-        'model' => 'CR-V',
-        'year' => 2022,
-        'type' => 'SUV',
-        'fuel' => 'Gasoline',
-        'seats' => 5,
-        'price' => 75,
-        'location' => 'San Francisco'
-    ],
-    3 => [
-        'make' => 'Tesla',
-        'model' => 'Model 3',
-        'year' => 2024,
-        'type' => 'Electric',
-        'fuel' => 'Electric',
-        'seats' => 5,
-        'price' => 90,
-        'location' => 'San Jose'
-    ]
-];
+require_once __DIR__ . '/../includes/db.php';
 
-$reservations = [
-    [
-        'vehicle_id' => 1,
-        'pickup_date' => '2026-12-10',
-        'return_date' => '2026-12-14',
-        'status' => 'Confirmed'
-    ]
-];
+function h($value)
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
 
-$locations = ['San Jose', 'San Francisco'];
-$types = ['Sedan', 'SUV', 'Electric'];
+$locations = [];
+$locationResult = $conn->query(
+    "SELECT Name
+     FROM RentalLocation
+     ORDER BY Name"
+);
+
+while ($row = $locationResult->fetch_assoc()) {
+    $locations[] = $row['Name'];
+}
+
+$types = [];
+$typeResult = $conn->query(
+    "SELECT TypeName
+     FROM VehicleType
+     ORDER BY TypeName"
+);
+
+while ($row = $typeResult->fetch_assoc()) {
+    $types[] = $row['TypeName'];
+}
 
 $pickupDate = $_GET['pickup_date'] ?? '';
 $returnDate = $_GET['return_date'] ?? '';
@@ -59,46 +43,86 @@ if ($searched) {
         $error = 'Please enter both pickup and return dates.';
     } elseif ($returnDate <= $pickupDate) {
         $error = 'Return date must be after pickup date.';
-    } elseif ($maxPrice !== '' && $maxPrice < 0) {
-        $error = 'Maximum price cannot be negative.';
+    } elseif (
+        $maxPrice !== '' &&
+        (!is_numeric($maxPrice) || (float)$maxPrice < 0)
+    ) {
+        $error = 'Maximum price must be a non-negative number.';
     } else {
-        foreach ($vehicles as $id => $vehicle) {
-            if ($location !== '' && $vehicle['location'] !== $location) {
-                continue;
-            }
+        $conditions = [
+            "v.Status = 'Available'"
+        ];
 
-            if ($type !== '' && $vehicle['type'] !== $type) {
-                continue;
-            }
+        $parameters = [];
 
-            if ($maxPrice !== '' && $vehicle['price'] > $maxPrice) {
-                continue;
-            }
+        if ($location !== '') {
+            $conditions[] = "rl.Name = ?";
+            $parameters[] = $location;
+        }
 
-            $isAvailable = true;
+        if ($type !== '') {
+            $conditions[] = "vt.TypeName = ?";
+            $parameters[] = $type;
+        }
 
-            foreach ($reservations as $reservation) {
-                if ($reservation['vehicle_id'] != $id) {
-                    continue;
-                }
+        if ($maxPrice !== '') {
+            $conditions[] = "v.DailyRate <= ?";
+            $parameters[] = (float)$maxPrice;
+        }
 
-                if ($reservation['status'] === 'Cancelled') {
-                    continue;
-                }
+        $conditions[] = "
+            NOT EXISTS (
+                SELECT 1
+                FROM Reservation r
+                WHERE r.VehicleID = v.VehicleID
+                  AND r.Status NOT IN ('Cancelled', 'Completed')
+                  AND r.PickupDate < ?
+                  AND r.ReturnDate > ?
+            )
+        ";
 
-                $hasOverlap =
-                    $reservation['pickup_date'] < $returnDate &&
-                    $reservation['return_date'] > $pickupDate;
+        $parameters[] = $returnDate . ' 00:00:00';
+        $parameters[] = $pickupDate . ' 00:00:00';
 
-                if ($hasOverlap) {
-                    $isAvailable = false;
-                    break;
-                }
-            }
+        $sql = "
+            SELECT
+                v.VehicleID,
+                v.DailyRate,
+                vm.Make,
+                vm.ModelName,
+                vm.Year,
+                vm.FuelType,
+                vm.Seats,
+                vt.TypeName,
+                rl.Name AS LocationName
+            FROM Vehicle v
+            JOIN VehicleModel vm
+                ON v.ModelID = vm.ModelID
+            JOIN VehicleType vt
+                ON vm.TypeID = vt.TypeID
+            JOIN RentalLocation rl
+                ON v.LocationID = rl.LocationID
+            WHERE " . implode(' AND ', $conditions) . "
+            ORDER BY v.DailyRate ASC,
+                     vm.Make ASC,
+                     vm.ModelName ASC
+        ";
 
-            if ($isAvailable) {
-                $results[$id] = $vehicle;
-            }
+        $vehicleResult = $conn->execute_query($sql, $parameters);
+
+        while ($row = $vehicleResult->fetch_assoc()) {
+            $vehicleId = (int)$row['VehicleID'];
+
+            $results[$vehicleId] = [
+                'make' => $row['Make'],
+                'model' => $row['ModelName'],
+                'year' => $row['Year'],
+                'type' => $row['TypeName'],
+                'fuel' => $row['FuelType'],
+                'seats' => $row['Seats'],
+                'price' => $row['DailyRate'],
+                'location' => $row['LocationName']
+            ];
         }
     }
 }
@@ -142,9 +166,11 @@ if ($searched) {
                         <option value="">Any location</option>
 
                         <?php foreach ($locations as $item): ?>
-                            <option value="<?= htmlspecialchars($item) ?>"
-                                <?= $location === $item ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($item) ?>
+                            <option
+                                value="<?= h($item) ?>"
+                                <?= $location === $item ? 'selected' : '' ?>
+                            >
+                                <?= h($item) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -157,7 +183,7 @@ if ($searched) {
                         type="date"
                         id="pickup_date"
                         name="pickup_date"
-                        value="<?= htmlspecialchars($pickupDate) ?>"
+                        value="<?= h($pickupDate) ?>"
                         required
                     >
                 </div>
@@ -169,7 +195,7 @@ if ($searched) {
                         type="date"
                         id="return_date"
                         name="return_date"
-                        value="<?= htmlspecialchars($returnDate) ?>"
+                        value="<?= h($returnDate) ?>"
                         required
                     >
                 </div>
@@ -181,9 +207,11 @@ if ($searched) {
                         <option value="">Any type</option>
 
                         <?php foreach ($types as $item): ?>
-                            <option value="<?= htmlspecialchars($item) ?>"
-                                <?= $type === $item ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($item) ?>
+                            <option
+                                value="<?= h($item) ?>"
+                                <?= $type === $item ? 'selected' : '' ?>
+                            >
+                                <?= h($item) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -198,7 +226,7 @@ if ($searched) {
                         name="max_price"
                         min="0"
                         step="0.01"
-                        value="<?= htmlspecialchars($maxPrice) ?>"
+                        value="<?= h($maxPrice) ?>"
                         placeholder="No limit"
                     >
                 </div>
@@ -222,7 +250,7 @@ if ($searched) {
     <?php if ($error !== ''): ?>
 
         <p class="message">
-            <?= htmlspecialchars($error) ?>
+            <?= h($error) ?>
         </p>
 
     <?php elseif ($searched): ?>
@@ -250,17 +278,15 @@ if ($searched) {
                     <article class="vehicle-card">
 
                         <h3>
-                            <?= htmlspecialchars(
-                                $vehicle['make'] . ' ' . $vehicle['model']
-                            ) ?>
+                            <?= h($vehicle['make'] . ' ' . $vehicle['model']) ?>
                         </h3>
 
                         <p class="vehicle-meta">
-                            Year: <?= htmlspecialchars($vehicle['year']) ?><br>
-                            Type: <?= htmlspecialchars($vehicle['type']) ?><br>
-                            Fuel: <?= htmlspecialchars($vehicle['fuel']) ?><br>
-                            Seats: <?= htmlspecialchars($vehicle['seats']) ?><br>
-                            Location: <?= htmlspecialchars($vehicle['location']) ?>
+                            Year: <?= h($vehicle['year']) ?><br>
+                            Type: <?= h($vehicle['type']) ?><br>
+                            Fuel: <?= h($vehicle['fuel']) ?><br>
+                            Seats: <?= h($vehicle['seats']) ?><br>
+                            Location: <?= h($vehicle['location']) ?>
                         </p>
 
                         <p class="price">
